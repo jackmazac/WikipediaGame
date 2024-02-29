@@ -1,0 +1,14 @@
+1. Parallelization
+Concurrent Fetching: The script fetches pages one at a time. Utilizing concurrent requests to fetch multiple pages simultaneously could significantly reduce the total search time. Python's concurrent.futures module or asynchronous programming with asyncio and aiohttp can be used for this purpose.
+2. Caching
+Link Caching: Pages that have already been fetched and processed could have their links cached to avoid re-fetching and re-parsing in future searches. This is particularly useful for popular pages that are likely to be encountered often.
+3. Graph-based Optimization
+Bidirectional Search: Instead of searching only from the start page towards the finish page, initiating a simultaneous search from the finish page back to the start page can dramatically reduce the search space and time. The search completes when the two searches meet in the middle.
+Heuristic Search (A or Greedy Best First Search):* If a heuristic can be defined (e.g., based on link popularity or text similarity between the current page and the finish page), these algorithms could prioritize paths that are more likely to lead to the finish page faster than BFS.
+4. Data Structure Optimization
+Efficient Queue Management: Using deque from the collections module for the queue can improve the efficiency of insertions and deletions compared to a list.
+Set for Discovered Pages: The script already uses a set for discovered pages, which is good for ensuring that each page is only visited once. Ensuring that all lookups and insertions into this set are as efficient as possible is crucial.
+5. Limit Search Depth
+Depth Limit: Introducing a maximum depth could prevent the search from going too deep into less relevant parts of Wikipedia. This could be a configurable parameter based on average path lengths observed in Wikipedia.
+6. User-defined Stop Conditions
+Flexible Timeout and Stop Conditions: Besides a fixed timeout, allowing for dynamic adjustment of the timeout based on the time of day or server load could optimize resource usage. Additionally, implementing a user-defined stop condition based on the number of pages visited or the depth reached could give more control over the search's breadth and depth.
