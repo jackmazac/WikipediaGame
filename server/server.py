@@ -23,12 +23,14 @@ def find_path():
 
         path, logs, time, discovered = crawler.find_path(start_page, finish_page)
 
+        app.logger.info(f"Path found: {path}")
         response = jsonify({'path': path, 'logs': logs, 'time': time, 'discovered': discovered})
         print(response)
         return response
     except crawler.TimeoutErrorWithLogs as e:
         app.logger.error(f"Error occurred: {e}")
-        return jsonify({'error': str(e), 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 500
+        app.logger.error(f"Timeout occurred: {e}")
+        return jsonify({'error': str(e), 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 408
     except Exception as e:
         app.logger.error(f"Error occurred: {e}")
         return jsonify({'error': 'An error occurred while finding path', 'logs': [], 'time': 0, 'discovered': 0}), 500
@@ -40,6 +42,8 @@ def send_static(path):
 # Ensure 'logs' variable is defined and accessible before using it in 'stream_logs' function
 @app.route('/logs', methods=['GET'])
 def stream_logs():
+    if 'logs' not in globals():
+        return Response("No logs available.", mimetype='text/plain')
     def generate():
         for log in logs:
             yield f"data: {log}\n\n"
