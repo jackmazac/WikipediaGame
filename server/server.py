@@ -19,6 +19,7 @@ def find_path():
     logs = []  # Initialize logs to an empty list
     time = 0   # Initialize time to 0
     discovered = 0  # Initialize discovered to 0
+    logs = []  # Initialize logs at the beginning
     try:
         data = request.get_json()
         start_page = data['start']
