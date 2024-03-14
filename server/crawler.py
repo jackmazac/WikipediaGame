@@ -14,9 +14,16 @@ page_cache = {}
 
 wiki_link_pattern = re.compile(r'^https://en\.wikipedia\.org/wiki/[^:]*$')
 
+from retrying import retry
+
+def is_retryable_exception(exception):
+    """Determine if the exception is due to a retryable error."""
+    return isinstance(exception, (aiohttp.ClientError, asyncio.TimeoutError))
+
+@retry(retry_on_exception=is_retryable_exception, stop_max_attempt_number=3, wait_fixed=2000)
 def get_links(session, page_url):
     global page_cache
-    async with semaphore:
+    # Removed semaphore usage as it's not needed in distributed mode
     if page_url in page_cache:
         logs.append(f"Page found in cache: {page_url}")
         all_links = page_cache[page_url]
@@ -40,7 +47,7 @@ def get_links(session, page_url):
         logs.append(f"Finished fetching page: {page_url}")
         soup = BeautifulSoup(response_text, 'html.parser')
         all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if wiki_link_pattern.match(urljoin(page_url, a['href']))]
-        page_cache.set(page_url, all_links)
+        page_cache.setex(page_url, 3600, all_links)  # Cache with expiration
     logs.append(f"Found {len(all_links)} links on page: {page_url}")
     return all_links
 
