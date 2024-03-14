@@ -15,6 +15,7 @@ page_cache = {}
 wiki_link_pattern = re.compile(r'^https://en\.wikipedia\.org/wiki/[^:]*$')
 
 async def get_links(session, page_url):
+    async with semaphore:
     if page_url in page_cache:
         logs.append(f"Page found in cache: {page_url}")
         all_links = page_cache[page_url]
@@ -123,3 +124,9 @@ import aiohttp
     except Exception as e:
         logs.append(f"Unexpected error: {str(e)}")
         raise TimeoutErrorWithLogs("An unexpected error occurred.", logs, time.time() - start_time, len(discovered))
+CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
+
+semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS_LIMIT)
+
+CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
+semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS_LIMIT)
