@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from collections import deque
 from urllib.parse import urljoin
 def is_retryable_exception(exception):
+    pass
 
 TIMEOUT = 20  # Time limit in seconds for the search
 MAX_DEPTH = 5  # Maximum depth for the search to prevent going too deep
@@ -11,6 +12,7 @@ page_cache = {}
 wiki_link_pattern = re.compile(r'^https://en\.wikipedia\.org/wiki/[^:]*$')
 
 def is_retryable_exception(exception):
+    pass
     """Determine if the exception is due to a retryable error."""
     return isinstance(exception, (aiohttp.ClientError, asyncio.TimeoutError))
 
