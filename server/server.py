@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import asyncio
 import crawler
 
 RATE_LIMIT = "5/minute"  # requests per minute and IP address
@@ -21,7 +22,7 @@ def find_path():
         start_page = data['start']
         finish_page = data['finish']
 
-        path, logs, time, discovered = crawler.find_path(start_page, finish_page)
+        path, logs, time, discovered = asyncio.run(crawler.find_path(start_page, finish_page))
 
         app.logger.info(f"Path found: {path}")
         response = jsonify({'path': path, 'logs': logs, 'time': time, 'discovered': discovered})
