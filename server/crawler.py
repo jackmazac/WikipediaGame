@@ -7,12 +7,20 @@ import csv
 import os
 
 TIMEOUT = 20  # time limit in seconds for the search
+page_cache = {}
 
 def get_links(page_url, verbose=True):
-    print(f"Fetching page: {page_url}")
-    response = requests.get(page_url)
-    print(f"Finished fetching page: {page_url}")
-    soup = BeautifulSoup(response.text, 'html.parser')
+    if page_url in page_cache:
+        print(f"Page found in cache: {page_url}")
+        all_links = page_cache[page_url]
+    else:
+        print(f"Fetching page: {page_url}")
+        response = requests.get(page_url)
+        print(f"Finished fetching page: {page_url}")
+        soup = BeautifulSoup(response.text, 'html.parser')
+        from urllib.parse import urljoin
+        all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if '#' not in a['href']]
+        page_cache[page_url] = all_links
     from urllib.parse import urljoin
     all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if '#' not in a['href']]
     if verbose:
