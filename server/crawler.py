@@ -51,12 +51,12 @@ from urllib.parse import urljoin
 async def find_path(start_page, finish_page):
     start_time = time.time()
     logs = []
-    queue = Queue()
+    queue = deque()
     discovered = {start_page: [start_page]}
-    queue.put((start_page, [start_page], 0))
+    queue.append((start_page, [start_page], 0))
     async with aiohttp.ClientSession() as session:
-        while not queue.empty():
-            vertex, path, depth = queue.get()
+        while queue:
+            vertex, path, depth = queue.popleft()
             if vertex == finish_page:
                 elapsed_time = time.time() - start_time
                 log_performance_metrics(start_page, finish_page, elapsed_time, len(discovered), depth)
@@ -66,21 +66,21 @@ async def find_path(start_page, finish_page):
             links = await get_links(session, vertex)
             for next in set(links) - set(discovered.keys()):
                 discovered[next] = path + [next]
-                queue.put((next, path + [next], depth + 1))
+                queue.append((next, path + [next], depth + 1))
     elapsed_time = time.time() - start_time
     raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(discovered))
 
 
 async def bidirectional_search(start_page, finish_page):
     start_time = time.time()
-    start_queue = Queue()
-    finish_queue = Queue()
+    start_queue = deque()
+    finish_queue = deque()
     start_discovered = {start_page: [start_page]}
     finish_discovered = {finish_page: [finish_page]}
-    start_queue.put((start_page, [start_page], 0))
-    finish_queue.put((finish_page, [finish_page], 0))
+    start_queue.append((start_page, [start_page], 0))
+    finish_queue.append((finish_page, [finish_page], 0))
     async with aiohttp.ClientSession() as session:
-        while not start_queue.empty() and not finish_queue.empty():
+        while start_queue and finish_queue:
             start_path = await search_step(session, start_queue, start_discovered, finish_discovered)
             if start_path:
                 elapsed_time = time.time() - start_time
@@ -95,8 +95,8 @@ async def bidirectional_search(start_page, finish_page):
     raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(start_discovered) + len(finish_discovered))
 
 async def search_step(session, queue, discovered, other_discovered, reverse=False):
-    if not queue.empty():
-        vertex, path, depth = queue.get()
+    if queue:
+        vertex, path, depth = queue.popleft()
         if vertex in other_discovered:
             return path + other_discovered[vertex][::-1][1:]
         if depth > MAX_DEPTH:
@@ -104,7 +104,7 @@ async def search_step(session, queue, discovered, other_discovered, reverse=Fals
         links = await get_links(session, vertex)
         for next in set(links) - set(discovered.keys()):
             discovered[next] = path + [next]
-            queue.put((next, path + [next], depth + 1))
+            queue.append((next, path + [next], depth + 1))
     return None
 
     start_queue = Queue()
