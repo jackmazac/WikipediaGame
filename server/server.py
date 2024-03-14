@@ -29,9 +29,11 @@ def find_path():
         print(response)
         return response
     except crawler.TimeoutErrorWithLogs as e:
-        app.logger.error(f"Error occurred: {e}")
-        app.logger.error(f"Timeout occurred: {e}")
-        return jsonify({'error': str(e), 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 408
+        app.logger.error(f"TimeoutErrorWithLogs occurred: {e}")
+        return jsonify({'error': 'Timeout occurred while finding path', 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 408
+    except crawler.PathNotFoundError as e:
+        app.logger.error(f"PathNotFoundError occurred: {e}")
+        return jsonify({'error': 'Path not found within the depth limit', 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 404
     except Exception as e:
         app.logger.error(f"Error occurred: {e}")
         return jsonify({'error': 'An error occurred while finding path', 'logs': [], 'time': 0, 'discovered': 0}), 500
