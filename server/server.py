@@ -16,10 +16,7 @@ def home():
 @app.route('/find_path', methods=['POST'])
 @limiter.limit(RATE_LIMIT)
 def find_path():
-    logs = []  # Initialize logs to an empty list
-    time = 0   # Initialize time to 0
-    discovered = 0  # Initialize discovered to 0
-    logs = []  # Initialize logs at the beginning
+    logs = []  # Ensure logs is initialized at the very beginning of the function
     try:
         data = request.get_json()
         start_page = data['start']
@@ -34,11 +31,11 @@ def find_path():
     except crawler.TimeoutErrorWithLogs as e:
         app.logger.error(f"Error occurred: {e}")
         return jsonify({'error': str(e), 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 500
-        return jsonify({'error': str(e), 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 500
+        # Removed duplicate line
     except Exception as e:
         app.logger.error(f"Error occurred: {e}")
         return jsonify({'error': 'An error occurred while finding path', 'logs': [], 'time': 0, 'discovered': 0}), 500
-        return jsonify({'error': 'An error occurred while finding path', 'logs': [], 'time': 0, 'discovered': 0}), 500
+        # Removed duplicate line
 
 @app.route('/static/<path:path>')
 def send_static(path):
