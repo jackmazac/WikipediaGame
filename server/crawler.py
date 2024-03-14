@@ -51,10 +51,22 @@ def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pa
             'depth_reached': depth_reached
         })
 from queue import PriorityQueue
-import difflib
+from urllib.parse import urlparse
 
 def url_similarity(url1, url2):
-    return difflib.SequenceMatcher(None, url1, url2).ratio()
+    # Extract paths from URLs and compare them
+    path1 = urlparse(url1).path
+    path2 = urlparse(url2).path
+    # Use a simple heuristic based on the overlap of path segments
+    segments1 = set(path1.split('/'))
+    segments2 = set(path2.split('/'))
+    common_segments = segments1.intersection(segments2)
+    # Calculate similarity as the ratio of common segments to total unique segments
+    total_segments = segments1.union(segments2)
+    if not total_segments:
+        return 0
+    similarity = len(common_segments) / len(total_segments)
+    return similarity
 
 def find_path(start_page, finish_page):
     queue = PriorityQueue()
@@ -84,7 +96,9 @@ def find_path(start_page, finish_page):
                 logs.append(log)
                 discovered.add(next)
                 similarity = url_similarity(next, finish_page)
-                priority = -similarity  # Negative because PriorityQueue returns lowest first
+                # Adjust priority calculation to better reflect path similarity
+                # Higher similarity gives a lower (more negative) priority
+                priority = -1 * similarity * 100  # Scale to make differences more pronounced
                 queue.put((priority, next, path + [next], depth + 1))
         elapsed_time = time.time() - start_time
         depth_reached = depth
