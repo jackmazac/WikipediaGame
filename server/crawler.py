@@ -1,9 +1,12 @@
-import time, re
-from collections import deque
-import requests
-from bs4 import BeautifulSoup
+import asyncio
+import aiohttp
 import csv
 import os
+import re
+import time
+from bs4 import BeautifulSoup
+from collections import deque
+from urllib.parse import urljoin
 
 TIMEOUT = 20  # Time limit in seconds for the search
 MAX_DEPTH = 5  # Maximum depth for the search to prevent going too deep
@@ -27,8 +30,6 @@ async def get_links(session, page_url):
         except Exception as e:
             logs.append(f"Exception fetching page: {page_url}, error: {str(e)}")
             return []
-        async with session.get(page_url) as response:
-            response_text = await response.text()
         logs.append(f"Finished fetching page: {page_url}")
         soup = BeautifulSoup(response_text, 'html.parser')
         all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if wiki_link_pattern.match(urljoin(page_url, a['href']))]
@@ -57,7 +58,7 @@ def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pa
 from queue import Queue
 from urllib.parse import urljoin
 
-async def find_path(start_page, finish_page):
+async def find_path(start_page, finish_page, timeout=TIMEOUT):
     start_time = time.time()
     logs = []
     queue = deque()
@@ -103,3 +104,22 @@ class TimeoutErrorWithLogs(Exception):
 import asyncio
 import aiohttp
 
+    try:
+        async with aiohttp.ClientSession() as session:
+            while queue:
+                vertex, path, depth = queue.popleft()
+                if vertex == finish_page:
+                    elapsed_time = time.time() - start_time
+                    log_performance_metrics(start_page, finish_page, elapsed_time, len(discovered), depth)
+                    return path, logs, elapsed_time, len(discovered)
+                if depth > MAX_DEPTH:
+                    continue
+                links = await get_links(session, vertex)
+                for next in set(links) - set(discovered.keys()):
+                    discovered[next] = path + [next]
+                    queue.append((next, path + [next], depth + 1))
+        elapsed_time = time.time() - start_time
+        raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(discovered))
+    except Exception as e:
+        logs.append(f"Unexpected error: {str(e)}")
+        raise TimeoutErrorWithLogs("An unexpected error occurred.", logs, time.time() - start_time, len(discovered))
