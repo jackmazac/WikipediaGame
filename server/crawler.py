@@ -21,7 +21,7 @@ def is_retryable_exception(exception):
     return isinstance(exception, (aiohttp.ClientError, asyncio.TimeoutError))
 
 @retry(retry_on_exception=is_retryable_exception, stop_max_attempt_number=3, wait_fixed=2000)
-def get_links(session, page_url):
+async def get_links(session, page_url):
     global page_cache
     # Removed semaphore usage as it's not needed in distributed mode
     if page_url in page_cache:
@@ -30,17 +30,12 @@ def get_links(session, page_url):
     else:
         logs.append(f"Fetching page: {page_url}")
         try:
-            response = session.get(page_url)
+            response = await session.get(page_url)
             if response.status == 200:
-                response_text = response.text
+                response_text = await response.text()
             else:
                 logs.append(f"Error fetching page: {page_url}, status code: {response.status}")
                 return []
-                if response.status == 200:
-                    response_text = await response.text()
-                else:
-                    logs.append(f"Error fetching page: {page_url}, status code: {response.status}")
-                    return []
         except Exception as e:
             logs.append(f"Exception fetching page: {page_url}, error: {str(e)}")
             return []
