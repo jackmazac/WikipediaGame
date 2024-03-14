@@ -143,6 +143,6 @@ async def find_path(start_page, finish_page):
         discovered = 100  # Placeholder for actual pages discovered
         return path, logs, time, discovered
     except asyncio.TimeoutError:
-        raise TimeoutErrorWithLogs("Operation timed out", [], TIMEOUT, 0)
+        raise PathNotFoundError("Path not found within depth limit", [], TIMEOUT, 0)
     except Exception as e:
         raise TimeoutErrorWithLogs(str(e), [], 0, 0)
