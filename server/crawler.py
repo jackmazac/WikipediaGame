@@ -1,4 +1,5 @@
 import time
+from collections import deque
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -20,7 +21,7 @@ def get_links(page_url, verbose=True):
     return links
 
 def find_path(start_page, finish_page):
-    queue = [(start_page, [start_page], 0)]
+    queue = deque([(start_page, [start_page], 0)])
     discovered = set()
     logs = []
 
@@ -28,7 +29,7 @@ def find_path(start_page, finish_page):
     start_time = time.time()
     elapsed_time = time.time() - start_time
     while queue and elapsed_time < TIMEOUT:  
-        (vertex, path, depth) = queue.pop(0)
+        (vertex, path, depth) = queue.popleft()
         for next in set(get_links(vertex)) - discovered:
             if next == finish_page:
                 log = f"Found finish page: {next}"
