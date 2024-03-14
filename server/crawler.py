@@ -49,17 +49,24 @@ def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pa
             'discovered_pages_count': discovered_pages_count,
             'depth_reached': depth_reached
         })
+from queue import PriorityQueue
+import difflib
+
+def url_similarity(url1, url2):
+    return difflib.SequenceMatcher(None, url1, url2).ratio()
 
 def find_path(start_page, finish_page):
     queue = deque([(start_page, [start_page], 0)])
+    queue = PriorityQueue()
     discovered = set()
     logs = []
 
     # breadth first search
     start_time = time.time()
     elapsed_time = time.time() - start_time
-    while queue and elapsed_time < TIMEOUT:  
-        (vertex, path, depth) = queue.popleft()
+    queue.put((0, start_page, [start_page], 0))  # Priority, vertex, path, depth
+    while not queue.empty() and elapsed_time < TIMEOUT:
+        _, vertex, path, depth = queue.get()
         for next in set(get_links(vertex)) - discovered:
             if next == finish_page:
                 log = f"Found finish page: {next}"
@@ -74,7 +81,9 @@ def find_path(start_page, finish_page):
                 print(log)
                 logs.append(log)
                 discovered.add(next)
-                queue.append((next, path + [next], depth + 1))
+                similarity = url_similarity(next, finish_page)
+                priority = -similarity  # Negative because PriorityQueue returns lowest first
+                queue.put((priority, next, path + [next], depth + 1))
         elapsed_time = time.time() - start_time
         depth_reached = depth
     logs.append(f"Search took {elapsed_time} seconds.")
