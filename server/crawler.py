@@ -11,15 +11,16 @@ page_cache = {}
 
 wiki_link_pattern = re.compile(r'^https://en\.wikipedia\.org/wiki/[^:]*$')
 
-def get_links(page_url):
+async def get_links(session, page_url):
     if page_url in page_cache:
         logs.append(f"Page found in cache: {page_url}")
         all_links = page_cache[page_url]
     else:
         logs.append(f"Fetching page: {page_url}")
-        response = requests.get(page_url)
+        async with session.get(page_url) as response:
+            response_text = await response.text()
         logs.append(f"Finished fetching page: {page_url}")
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(response_text, 'html.parser')
         all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if '#' not in a['href']]
         page_cache[page_url] = all_links
     links = [link for link in all_links if wiki_link_pattern.match(link)]
@@ -47,12 +48,27 @@ def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pa
 from queue import Queue
 from urllib.parse import urljoin
 
-def find_path(start_page, finish_page):
+async def find_path(start_page, finish_page):
     start_time = time.time()
     logs = []
     queue = Queue()
     discovered = {start_page: [start_page]}
     queue.put((start_page, [start_page], 0))
+    async with aiohttp.ClientSession() as session:
+        while not queue.empty():
+            vertex, path, depth = queue.get()
+            if vertex == finish_page:
+                elapsed_time = time.time() - start_time
+                log_performance_metrics(start_page, finish_page, elapsed_time, len(discovered), depth)
+                return path, logs, elapsed_time, len(discovered)
+            if depth > MAX_DEPTH:
+                continue
+            links = await get_links(session, vertex)
+            for next in set(links) - set(discovered.keys()):
+                discovered[next] = path + [next]
+                queue.put((next, path + [next], depth + 1))
+    elapsed_time = time.time() - start_time
+    raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(discovered))
 
     while not queue.empty():
         vertex, path, depth = queue.get()
@@ -94,3 +110,6 @@ class TimeoutErrorWithLogs(Exception):
         self.logs = logs
         self.time = time
         self.discovered = discovered
+import asyncio
+import aiohttp
+
