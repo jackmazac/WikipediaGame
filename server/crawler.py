@@ -125,7 +125,7 @@ class PathNotFoundError(Exception):
 # To start the bidirectional search:
 # asyncio.run(bidirectional_search('https://en.wikipedia.org/wiki/Start_Page', 'https://en.wikipedia.org/wiki/End_Page'))import json
 
-class TimeoutErrorWithLogs(Exception):
+class PathFindingErrorWithLogs(Exception):
     def __init__(self, message, logs, time, discovered):
         super().__init__(message)
         self.logs = logs
@@ -145,4 +145,4 @@ async def find_path(start_page, finish_page):
     except asyncio.TimeoutError:
         raise PathNotFoundError("Path not found within depth limit", [], TIMEOUT, 0)
     except Exception as e:
-        raise TimeoutErrorWithLogs(str(e), [], 0, 0)
+        raise PathFindingErrorWithLogs(str(e), [], 0, 0)
