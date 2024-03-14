@@ -1,9 +1,7 @@
-import asyncio, aiohttp, csv, os, re, time
+import asyncio, aiohttp, csv, json, os, re, time
 from bs4 import BeautifulSoup
 from collections import deque
-from urllib.parse import urljoin, urlparse
-from retrying import retry
-
+from urllib.parse import urljoin
 def is_retryable_exception(exception):
 
 TIMEOUT = 20  # Time limit in seconds for the search
@@ -12,8 +10,6 @@ page_cache = {}
 
 wiki_link_pattern = re.compile(r'^https://en\.wikipedia\.org/wiki/[^:]*$')
 
-from retrying import retry
-
 def is_retryable_exception(exception):
     """Determine if the exception is due to a retryable error."""
     return isinstance(exception, (aiohttp.ClientError, asyncio.TimeoutError))
@@ -21,19 +17,19 @@ def is_retryable_exception(exception):
 @retry(retry_on_exception=is_retryable_exception, stop_max_attempt_number=3, wait_fixed=2000)
 async def get_links(session, page_url):
     global page_cache
-    cached_links = await page_cache.get(page_url)
-    if cached_links:
+    cached_links = page_cache.get(page_url)
+    if cached_links is not None:
         logs.append(f"Page found in cache: {page_url}")
-        return json.loads(cached_links)
-    logs.append(f"Fetching page: {page_url}")
+        return cached_links
+    print(f"Fetching page: {page_url}")
     try:
         async with session.get(page_url) as response:
             if response.status == 200:
                 response_text = await response.text()
                 soup = BeautifulSoup(response_text, 'html.parser')
                 all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if wiki_link_pattern.match(urljoin(page_url, a['href']))]
-                await page_cache.setex(page_url, 3600, json.dumps(all_links))  # Cache with expiration
-                logs.append(f"Finished fetching page: {page_url}")
+                page_cache.setex(page_url, 3600, all_links)  # Cache with expiration
+                print(f"Finished fetching page: {page_url}")
                 return all_links
             else:
                 logs.append(f"Error fetching page: {page_url}, status code: {response.status}")
@@ -151,3 +147,24 @@ def enqueue_link_fetching(session, page_url):
     job = distributed_queue.enqueue(get_links, session, page_url)
     return job.result
 
+import redis
+from rq import Queue
+TIMEOUT = 20  # Time limit in seconds for the search
+MAX_DEPTH = 5  # Maximum depth for the search to prevent going too deep
+page_cache = {}
+wiki_link_pattern = re.compile(r'^https://en\.wikipedia\.org/wiki/[^:]*$')
+async def get_links(session, page_url):
+def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pages_count, depth_reached):
+    logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
+    if not os.path.exists(logs_dir):
+        os.makedirs(logs_dir)
+    log_file_path = os.path.join(logs_dir, 'performance_logs.csv')
+    file_exists = os.path.isfile(log_file_path)
+    with open(log_file_path, 'a', newline='') as csvfile:
+        fieldnames = ['start_page', 'finish_page', 'elapsed_time', 'discovered_pages_count', 'depth_reached']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({
+            'start_page': start_page,
+            'finish_page': finish_page,
