@@ -23,7 +23,10 @@ def get_links(page_url, verbose=True):
     return links
 
 def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pages_count, depth_reached):
-    log_file_path = 'performance_logs.csv'
+    logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
+    if not os.path.exists(logs_dir):
+        os.makedirs(logs_dir)
+    log_file_path = os.path.join(logs_dir, 'performance_logs.csv')
     file_exists = os.path.isfile(log_file_path)
     with open(log_file_path, 'a', newline='') as csvfile:
         fieldnames = ['start_page', 'finish_page', 'elapsed_time', 'discovered_pages_count', 'depth_reached']
