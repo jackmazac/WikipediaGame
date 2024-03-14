@@ -16,26 +16,22 @@ def home():
 @app.route('/find_path', methods=['POST'])
 @limiter.limit(RATE_LIMIT)
 def find_path():
-    logs = []  # Ensure logs is initialized at the very beginning of the function
     try:
         data = request.get_json()
         start_page = data['start']
         finish_page = data['finish']
 
-        path, logs, time, discovered = crawler.find_path(start_page, finish_page)  # These variables are now already defined
+        path, logs, time, discovered = crawler.find_path(start_page, finish_page)
 
-        # Removed unused elapsed_time variable
         response = jsonify({'path': path, 'logs': logs, 'time': time, 'discovered': discovered})
         print(response)
         return response
     except crawler.TimeoutErrorWithLogs as e:
         app.logger.error(f"Error occurred: {e}")
         return jsonify({'error': str(e), 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 500
-        # Removed duplicate line
     except Exception as e:
         app.logger.error(f"Error occurred: {e}")
         return jsonify({'error': 'An error occurred while finding path', 'logs': [], 'time': 0, 'discovered': 0}), 500
-        # Removed duplicate line
 
 @app.route('/static/<path:path>')
 def send_static(path):
@@ -44,7 +40,6 @@ def send_static(path):
 # Ensure 'logs' variable is defined and accessible before using it in 'stream_logs' function
 @app.route('/logs', methods=['GET'])
 def stream_logs():
-    logs = []  # Placeholder for actual log handling logic
     def generate():
         for log in logs:
             yield f"data: {log}\n\n"
