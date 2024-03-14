@@ -87,17 +87,18 @@ def url_similarity(url1, url2):
     similarity = (0.6 * semantic_score) + (0.3 * path_score) + (0.1 * query_score)
     return similarity
 
-def find_path(start_page, finish_page):
+def find_path(start_page, finish_page, max_queue_size=100):
     queue = PriorityQueue()
     discovered = set()
     logs = []
+    visited_paths = {}
 
     # breadth first search
     start_time = time.time()
     elapsed_time = time.time() - start_time
-    queue.put((0, start_page, [start_page], 0))  # Priority, vertex, path, depth. Initialize with start_page
+    queue.put((0, 0, start_page, [start_page], 0))  # Priority, similarity score, vertex, path, depth. Initialize with start_page
     while not queue.empty() and elapsed_time < TIMEOUT:
-        _, vertex, path, depth = queue.get()
+        _, similarity_score, vertex, path, depth = queue.get()
         if depth > MAX_DEPTH:
             continue  # Skip adding new links if maximum depth is exceeded
         for next in set(get_links(vertex)) - discovered:
@@ -118,7 +119,15 @@ def find_path(start_page, finish_page):
                 # Adjust priority calculation to better reflect path similarity
                 # Higher similarity gives a lower (more negative) priority
                 priority = -1 * similarity * 100  # Scale to make differences more pronounced
-                queue.put((priority, next, path + [next], depth + 1))
+                # Dynamic priority adjustment based on similarity score
+                new_similarity_score = similarity_score + url_similarity(next, finish_page)
+                new_priority = -1 * new_similarity_score  # Higher similarity gives a lower (more negative) priority
+                # Limit queue size by pruning less promising paths
+                if len(queue.queue) < max_queue_size or new_priority > queue.queue[-1][0]:
+                    if len(queue.queue) >= max_queue_size:
+                        queue.get()  # Remove the least promising path
+                    visited_paths[next] = new_similarity_score
+                    queue.put((new_priority, new_similarity_score, next, path + [next], depth + 1))
         elapsed_time = time.time() - start_time
         depth_reached = depth
     logs.append(f"Search took {elapsed_time} seconds.")
