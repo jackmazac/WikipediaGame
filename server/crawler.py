@@ -70,29 +70,42 @@ async def find_path(start_page, finish_page):
     elapsed_time = time.time() - start_time
     raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(discovered))
 
-    while not queue.empty():
-        vertex, path, depth = queue.get()
-        if vertex == finish_page:
-            elapsed_time = time.time() - start_time
-            log_performance_metrics(start_page, finish_page, elapsed_time, len(discovered), depth)
-            return path, logs, elapsed_time, len(discovered)
-        if depth > MAX_DEPTH:
-            continue
-        for next in set(get_links(vertex)) - set(discovered.keys()):
-            discovered[next] = path + [next]
-            queue.put((next, path + [next], depth + 1))
+
+async def bidirectional_search(start_page, finish_page):
+    start_time = time.time()
+    start_queue = Queue()
+    finish_queue = Queue()
+    start_discovered = {start_page: [start_page]}
+    finish_discovered = {finish_page: [finish_page]}
+    start_queue.put((start_page, [start_page], 0))
+    finish_queue.put((finish_page, [finish_page], 0))
+    async with aiohttp.ClientSession() as session:
+        while not start_queue.empty() and not finish_queue.empty():
+            start_path = await search_step(session, start_queue, start_discovered, finish_discovered)
+            if start_path:
+                elapsed_time = time.time() - start_time
+                log_performance_metrics(start_page, finish_page, elapsed_time, len(start_discovered) + len(finish_discovered), len(start_path) - 1)
+                return start_path, logs, elapsed_time, len(start_discovered) + len(finish_discovered)
+            finish_path = await search_step(session, finish_queue, finish_discovered, start_discovered, reverse=True)
+            if finish_path:
+                elapsed_time = time.time() - start_time
+                log_performance_metrics(start_page, finish_page, elapsed_time, len(start_discovered) + len(finish_discovered), len(finish_path) - 1)
+                return finish_path[::-1], logs, elapsed_time, len(start_discovered) + len(finish_discovered)
     elapsed_time = time.time() - start_time
-    raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(discovered))
-        if not queue.empty():
-            vertex, path, depth = queue.get()
+    raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(start_discovered) + len(finish_discovered))
+
+async def search_step(session, queue, discovered, other_discovered, reverse=False):
+    if not queue.empty():
+        vertex, path, depth = queue.get()
         if vertex in other_discovered:
-            return path + other_discovered[vertex][::-1]
+            return path + other_discovered[vertex][::-1][1:]
         if depth > MAX_DEPTH:
             return None
-        for next in set(get_links(vertex)) - set(discovered.keys()):
+        links = await get_links(session, vertex)
+        for next in set(links) - set(discovered.keys()):
             discovered[next] = path + [next]
             queue.put((next, path + [next], depth + 1))
-        return None
+    return None
 
     start_queue = Queue()
     start_discovered = {start_page: [start_page]}
