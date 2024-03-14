@@ -24,9 +24,10 @@ def is_retryable_exception(exception):
 async def get_links(session, page_url):
     global page_cache
     # Removed semaphore usage as it's not needed in distributed mode
-    if page_url in page_cache:
+    cached_links = await page_cache.get(page_url)
+    if cached_links:
         logs.append(f"Page found in cache: {page_url}")
-        all_links = page_cache[page_url]
+        all_links = json.loads(cached_links)
     else:
         logs.append(f"Fetching page: {page_url}")
         try:
@@ -42,7 +43,7 @@ async def get_links(session, page_url):
         logs.append(f"Finished fetching page: {page_url}")
         soup = BeautifulSoup(response_text, 'html.parser')
         all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if wiki_link_pattern.match(urljoin(page_url, a['href']))]
-        page_cache.setex(page_url, 3600, all_links)  # Cache with expiration
+        await page_cache.setex(page_url, 3600, json.dumps(all_links))  # Cache with expiration
     logs.append(f"Found {len(all_links)} links on page: {page_url}")
     return all_links
 
