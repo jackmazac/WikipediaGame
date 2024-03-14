@@ -114,6 +114,14 @@ async def search_step(session, queue, discovered, other_discovered):
             discovered[next_page] = path + [next_page]
             queue.append((next_page, path + [next_page]))
 
+# Define a new exception class for scenarios where no path is found within the depth limit
+class PathNotFoundError(Exception):
+    def __init__(self, message, logs, time, discovered):
+        super().__init__(message)
+        self.logs = logs
+        self.time = time
+        self.discovered = discovered
+
 # To start the bidirectional search:
 # asyncio.run(bidirectional_search('https://en.wikipedia.org/wiki/Start_Page', 'https://en.wikipedia.org/wiki/End_Page'))import json
 
@@ -128,7 +136,7 @@ async def find_path(start_page, finish_page):
     try:
         path = await bidirectional_search(start_page, finish_page)
         if path is None:
-            raise TimeoutErrorWithLogs("Path not found within depth limit", [], TIMEOUT, 0)
+            raise PathNotFoundError("Path not found within depth limit", [], TIMEOUT, 0)
         # Assuming logs, time, and discovered are calculated within bidirectional_search or elsewhere
         logs = ["Log entries here"]  # Placeholder for actual log entries
         time = 10  # Placeholder for actual time taken
