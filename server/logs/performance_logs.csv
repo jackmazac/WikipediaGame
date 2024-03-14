@@ -1,0 +1,9 @@
+start_page,finish_page,elapsed_time,discovered_pages_count,depth_reached
+https://en.wikipedia.org/wiki/Martin_Wirsing,https://en.wikipedia.org/wiki/David_Hilbert,20.139994859695435,10447,9
+https://en.wikipedia.org/wiki/Martin_Wirsing,https://en.wikipedia.org/wiki/David_Hilbert,20.0757839679718,10902,10
+https://en.wikipedia.org/wiki/Martin_Wirsing,https://en.wikipedia.org/wiki/David_Hilbert,20.481425285339355,8129,4
+https://en.wikipedia.org/wiki/Martin_Wirsing,https://en.wikipedia.org/wiki/David_Hilbert,20.33175778388977,6106,5
+https://en.wikipedia.org/wiki/Martin_Wirsing,https://en.wikipedia.org/wiki/David_Hilbert,20.537987232208252,6567,4
+https://en.wikipedia.org/wiki/Martin_Wirsing,https://en.wikipedia.org/wiki/David_Hilbert,0.006947755813598633,2,6
+https://en.wikipedia.org/wiki/Martin_Wirsing,https://en.wikipedia.org/wiki/David_Hilbert,0.0035381317138671875,2,11
+https://en.wikipedia.org/wiki/Martin_Wirsing,https://en.wikipedia.org/wiki/David_Hilbert,0.0030777454376220703,2,11
