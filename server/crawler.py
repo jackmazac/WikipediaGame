@@ -10,8 +10,8 @@ from urllib.parse import urljoin
 from retrying import retry
 
 # Constants for configuring the behavior of the crawler
-TIMEOUT = 20  # Time limit in seconds for the search
-MAX_DEPTH = 5  # Maximum depth for the search to prevent going too deep
+TIMEOUT = 60  # Time limit in seconds for the search
+MAX_DEPTH = 10  # Maximum depth for the search to prevent going too deep
 CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
 
 # Compile a pattern to match valid Wikipedia article links
@@ -126,7 +126,7 @@ class TimeoutErrorWithLogs(Exception):
 
 async def find_path(start_page, finish_page):
     try:
-        path = await bidirectional_search(start_page, finish_page)
+        path = await asyncio.wait_for(bidirectional_search(start_page, finish_page), timeout=TIMEOUT)
         if path is None:
             raise TimeoutErrorWithLogs("Path not found within depth limit", [], TIMEOUT, 0)
         # Assuming logs, time, and discovered are calculated within bidirectional_search or elsewhere
