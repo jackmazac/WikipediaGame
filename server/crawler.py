@@ -24,28 +24,29 @@ def is_retryable_exception(exception):
 async def get_links(session, page_url):
     global page_cache
     # Removed semaphore usage as it's not needed in distributed mode
-    cached_links = await page_cache.get(page_url)
-    if cached_links:
-        logs.append(f"Page found in cache: {page_url}")
-        all_links = json.loads(cached_links)
-    else:
-        logs.append(f"Fetching page: {page_url}")
-        try:
-            response = await session.get(page_url)
-            if response.status == 200:
-                response_text = await response.text()
-            else:
-                logs.append(f"Error fetching page: {page_url}, status code: {response.status}")
+    async with semaphore:
+        cached_links = await page_cache.get(page_url)
+        if cached_links:
+            logs.append(f"Page found in cache: {page_url}")
+            all_links = json.loads(cached_links)
+        else:
+            logs.append(f"Fetching page: {page_url}")
+            try:
+                response = await session.get(page_url)
+                if response.status == 200:
+                    response_text = await response.text()
+                else:
+                    logs.append(f"Error fetching page: {page_url}, status code: {response.status}")
+                    return []
+            except Exception as e:
+                logs.append(f"Exception fetching page: {page_url}, error: {str(e)}")
                 return []
-        except Exception as e:
-            logs.append(f"Exception fetching page: {page_url}, error: {str(e)}")
-            return []
-        logs.append(f"Finished fetching page: {page_url}")
-        soup = BeautifulSoup(response_text, 'html.parser')
-        all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if wiki_link_pattern.match(urljoin(page_url, a['href']))]
-        await page_cache.setex(page_url, 3600, json.dumps(all_links))  # Cache with expiration
-    logs.append(f"Found {len(all_links)} links on page: {page_url}")
-    return all_links
+            logs.append(f"Finished fetching page: {page_url}")
+            soup = BeautifulSoup(response_text, 'html.parser')
+            all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if wiki_link_pattern.match(urljoin(page_url, a['href']))]
+            await page_cache.setex(page_url, 3600, json.dumps(all_links))  # Cache with expiration
+        logs.append(f"Found {len(all_links)} links on page: {page_url}")
+        return all_links
 
 def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pages_count, depth_reached):
     logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
@@ -142,8 +143,8 @@ redis_conn = redis.Redis()
 distributed_queue = Queue(connection=redis_conn)
 page_cache = redis_conn
 
-CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
-semaphore = None  # Semaphore is not needed in distributed mode
+CONCURRENT_REQUESTS_LIMIT = 20  # Adjusted limit for concurrent requests based on server's capacity
+semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS_LIMIT)  # Reintroduced semaphore for concurrency control
 
 def enqueue_link_fetching(session, page_url):
     job = distributed_queue.enqueue(get_links, session, page_url)
@@ -158,8 +159,8 @@ redis_conn = redis.Redis()
 distributed_queue = Queue(connection=redis_conn)
 page_cache = redis_conn
 
-CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
-semaphore = None  # Semaphore is not needed in distributed mode
+CONCURRENT_REQUESTS_LIMIT = 20  # Adjusted limit for concurrent requests based on server's capacity
+semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS_LIMIT)  # Reintroduced semaphore for concurrency control
 
 def enqueue_link_fetching(session, page_url):
     job = distributed_queue.enqueue(get_links, session, page_url)
