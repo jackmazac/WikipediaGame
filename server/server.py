@@ -28,8 +28,8 @@ def find_path():
         response = jsonify({'path': path, 'logs': logs, 'time': time, 'discovered': discovered})
         print(response)
         return response
-    except crawler.TimeoutErrorWithLogs as e:
-        app.logger.error(f"TimeoutErrorWithLogs occurred: {e}")
+    except crawler.PathFindingErrorWithLogs as e:
+        app.logger.error(f"PathFindingErrorWithLogs occurred: {e}")
         return jsonify({'error': 'Timeout occurred while finding path', 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 408
     except crawler.PathNotFoundError as e:
         app.logger.error(f"PathNotFoundError occurred: {e}")
