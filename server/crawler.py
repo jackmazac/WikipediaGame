@@ -14,7 +14,8 @@ page_cache = {}
 
 wiki_link_pattern = re.compile(r'^https://en\.wikipedia\.org/wiki/[^:]*$')
 
-async def get_links(session, page_url):
+def get_links(session, page_url):
+    global page_cache
     async with semaphore:
     if page_url in page_cache:
         logs.append(f"Page found in cache: {page_url}")
@@ -22,7 +23,12 @@ async def get_links(session, page_url):
     else:
         logs.append(f"Fetching page: {page_url}")
         try:
-            async with session.get(page_url) as response:
+            response = session.get(page_url)
+            if response.status == 200:
+                response_text = response.text
+            else:
+                logs.append(f"Error fetching page: {page_url}, status code: {response.status}")
+                return []
                 if response.status == 200:
                     response_text = await response.text()
                 else:
@@ -34,7 +40,7 @@ async def get_links(session, page_url):
         logs.append(f"Finished fetching page: {page_url}")
         soup = BeautifulSoup(response_text, 'html.parser')
         all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if wiki_link_pattern.match(urljoin(page_url, a['href']))]
-        page_cache[page_url] = all_links
+        page_cache.set(page_url, all_links)
     logs.append(f"Found {len(all_links)} links on page: {page_url}")
     return all_links
 
@@ -126,7 +132,33 @@ import aiohttp
         raise TimeoutErrorWithLogs("An unexpected error occurred.", logs, time.time() - start_time, len(discovered))
 CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
 
-semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS_LIMIT)
+import redis
+from rq import Queue
+
+redis_conn = redis.Redis()
+distributed_queue = Queue(connection=redis_conn)
+page_cache = redis_conn
 
 CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
-semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS_LIMIT)
+semaphore = None  # Semaphore is not needed in distributed mode
+
+def enqueue_link_fetching(session, page_url):
+    job = distributed_queue.enqueue(get_links, session, page_url)
+    return job.result
+
+
+CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
+import redis
+from rq import Queue
+
+redis_conn = redis.Redis()
+distributed_queue = Queue(connection=redis_conn)
+page_cache = redis_conn
+
+CONCURRENT_REQUESTS_LIMIT = 10  # Limit for concurrent requests
+semaphore = None  # Semaphore is not needed in distributed mode
+
+def enqueue_link_fetching(session, page_url):
+    job = distributed_queue.enqueue(get_links, session, page_url)
+    return job.result
+

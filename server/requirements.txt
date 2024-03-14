@@ -5,4 +5,5 @@ Werkzeug>=2.0
 itsdangerous>=2.0
 requests==2.25.1
 beautifulsoup4==4.9.3
-Flask-Limiter
+Flask-Limiterredis==3.5.3
+rq==1.5.2
