@@ -6,7 +6,8 @@ import re
 import csv
 import os
 
-TIMEOUT = 20  # time limit in seconds for the search
+TIMEOUT = 20  # Time limit in seconds for the search
+MAX_DEPTH = 5  # Maximum depth for the search to prevent going too deep
 page_cache = {}
 import re
 
@@ -56,7 +57,6 @@ def url_similarity(url1, url2):
     return difflib.SequenceMatcher(None, url1, url2).ratio()
 
 def find_path(start_page, finish_page):
-    queue = deque([(start_page, [start_page], 0)])
     queue = PriorityQueue()
     discovered = set()
     logs = []
@@ -64,9 +64,11 @@ def find_path(start_page, finish_page):
     # breadth first search
     start_time = time.time()
     elapsed_time = time.time() - start_time
-    queue.put((0, start_page, [start_page], 0))  # Priority, vertex, path, depth
+    queue.put((0, start_page, [start_page], 0))  # Priority, vertex, path, depth. Initialize with start_page
     while not queue.empty() and elapsed_time < TIMEOUT:
         _, vertex, path, depth = queue.get()
+        if depth > MAX_DEPTH:
+            continue  # Skip adding new links if maximum depth is exceeded
         for next in set(get_links(vertex)) - discovered:
             if next == finish_page:
                 log = f"Found finish page: {next}"
