@@ -96,7 +96,7 @@ def find_path(start_page, finish_page, max_queue_size=100):
             return path + other_discovered[vertex][::-1] if is_forward else other_discovered[vertex] + path[::-1]
         if depth > MAX_DEPTH:
             return None
-        for next in set(get_links(vertex)) - discovered:
+        for next in set(get_links(vertex)) - set(discovered.keys()):
             discovered[next] = path + [next]
             similarity = url_similarity(next, finish_page if is_forward else start_page)
             new_similarity_score = similarity_score + similarity
@@ -133,7 +133,7 @@ def find_path(start_page, finish_page, max_queue_size=100):
         _, similarity_score, vertex, path, depth = queue.get()
         if depth > MAX_DEPTH:
             continue  # Skip adding new links if maximum depth is exceeded
-        for next in set(get_links(vertex)) - discovered:
+        for next in set(get_links(vertex)) - set(discovered.keys()):
             if next == finish_page:
                 log = f"Found finish page: {next}"
                 print(log)
