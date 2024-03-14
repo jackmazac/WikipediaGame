@@ -3,6 +3,8 @@ from collections import deque
 import requests
 from bs4 import BeautifulSoup
 import re
+import csv
+import os
 
 TIMEOUT = 20  # time limit in seconds for the search
 
@@ -19,6 +21,22 @@ def get_links(page_url, verbose=True):
     links = [link for link in all_links if re.match(r'^https://en\.wikipedia\.org/wiki/[^:]*$', link) and '#' not in link]
     print(f"Found {len(links)} links on page: {page_url}")
     return links
+
+def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pages_count, depth_reached):
+    log_file_path = 'performance_logs.csv'
+    file_exists = os.path.isfile(log_file_path)
+    with open(log_file_path, 'a', newline='') as csvfile:
+        fieldnames = ['start_page', 'finish_page', 'elapsed_time', 'discovered_pages_count', 'depth_reached']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({
+            'start_page': start_page,
+            'finish_page': finish_page,
+            'elapsed_time': elapsed_time,
+            'discovered_pages_count': discovered_pages_count,
+            'depth_reached': depth_reached
+        })
 
 def find_path(start_page, finish_page):
     queue = deque([(start_page, [start_page], 0)])
@@ -46,9 +64,11 @@ def find_path(start_page, finish_page):
                 discovered.add(next)
                 queue.append((next, path + [next], depth + 1))
         elapsed_time = time.time() - start_time
+        depth_reached = depth
     logs.append(f"Search took {elapsed_time} seconds.")
     print(f"Search took {elapsed_time} seconds.")  # Add a print statement to log the elapsed time
     logs.append(f"Discovered pages: {len(discovered)}")
+    log_performance_metrics(start_page, finish_page, elapsed_time, len(discovered), depth_reached)
     raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(discovered))
 class TimeoutErrorWithLogs(Exception):
     def __init__(self, message, logs, time, discovered):
