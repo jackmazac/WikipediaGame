@@ -8,6 +8,9 @@ import os
 
 TIMEOUT = 20  # time limit in seconds for the search
 page_cache = {}
+import re
+
+wiki_link_pattern = re.compile(r'^https://en\.wikipedia\.org/wiki/[^:]*$')
 
 def get_links(page_url, verbose=True):
     if page_url in page_cache:
@@ -21,12 +24,10 @@ def get_links(page_url, verbose=True):
         from urllib.parse import urljoin
         all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if '#' not in a['href']]
         page_cache[page_url] = all_links
-    from urllib.parse import urljoin
-    all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if '#' not in a['href']]
     if verbose:
         print(f"All links found: {all_links}")
     # print(f"All links found: {all_links}")
-    links = [link for link in all_links if re.match(r'^https://en\.wikipedia\.org/wiki/[^:]*$', link) and '#' not in link]
+    links = [link for link in all_links if wiki_link_pattern.match(link)]
     print(f"Found {len(links)} links on page: {page_url}")
     return links
 
