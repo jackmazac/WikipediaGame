@@ -88,6 +88,38 @@ def url_similarity(url1, url2):
     return similarity
 
 def find_path(start_page, finish_page, max_queue_size=100):
+    def bidirectional_search(queue, discovered, other_discovered, is_forward):
+        if queue.empty():
+            return None
+        _, similarity_score, vertex, path, depth = queue.get()
+        if vertex in other_discovered:
+            return path + other_discovered[vertex][::-1] if is_forward else other_discovered[vertex] + path[::-1]
+        if depth > MAX_DEPTH:
+            return None
+        for next in set(get_links(vertex)) - discovered:
+            discovered[next] = path + [next]
+            similarity = url_similarity(next, finish_page if is_forward else start_page)
+            new_similarity_score = similarity_score + similarity
+            new_priority = -1 * new_similarity_score
+            queue.put((new_priority, new_similarity_score, next, path + [next], depth + 1))
+        return None
+
+    start_queue = PriorityQueue()
+    finish_queue = PriorityQueue()
+    start_discovered = {start_page: [start_page]}
+    finish_discovered = {finish_page: [finish_page]}
+    start_queue.put((0, 0, start_page, [start_page], 0))
+    finish_queue.put((0, 0, finish_page, [finish_page], 0))
+
+    while not start_queue.empty() or not finish_queue.empty():
+        path = bidirectional_search(start_queue, start_discovered, finish_discovered, True)
+        if path:
+            return path, logs, elapsed_time, len(start_discovered) + len(finish_discovered)
+        path = bidirectional_search(finish_queue, finish_discovered, start_discovered, False)
+        if path:
+            return path, logs, elapsed_time, len(start_discovered) + len(finish_discovered)
+
+    raise TimeoutErrorWithLogs("Search exceeded time limit.", logs, elapsed_time, len(start_discovered) + len(finish_discovered))
     queue = PriorityQueue()
     discovered = set()
     logs = []
