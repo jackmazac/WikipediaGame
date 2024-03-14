@@ -52,20 +52,39 @@ def log_performance_metrics(start_page, finish_page, elapsed_time, discovered_pa
         })
 from queue import PriorityQueue
 from urllib.parse import urlparse
+from urllib.parse import parse_qs
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+nltk.download('punkt')
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
 
 def url_similarity(url1, url2):
-    # Extract paths from URLs and compare them
-    path1 = urlparse(url1).path
-    path2 = urlparse(url2).path
-    # Use a simple heuristic based on the overlap of path segments
-    segments1 = set(path1.split('/'))
-    segments2 = set(path2.split('/'))
-    common_segments = segments1.intersection(segments2)
-    # Calculate similarity as the ratio of common segments to total unique segments
-    total_segments = segments1.union(segments2)
-    if not total_segments:
-        return 0
-    similarity = len(common_segments) / len(total_segments)
+    def extract_title_from_url(url):
+        path = urlparse(url).path
+        title = path.split('/')[-1]  # Get the last segment of the path as title
+        title = title.replace('_', ' ')  # Replace underscores with spaces
+        return title
+
+    def semantic_similarity(text1, text2):
+        words1 = word_tokenize(text1.lower())
+        words2 = word_tokenize(text2.lower())
+        words1 = [word for word in words1 if word not in stop_words]
+        words2 = [word for word in words2 if word not in stop_words]
+        common_words = set(words1).intersection(set(words2))
+        total_words = set(words1).union(set(words2))
+        if not total_words:
+            return 0
+        return len(common_words) / len(total_words)
+
+    title1 = extract_title_from_url(url1)
+    title2 = extract_title_from_url(url2)
+    semantic_score = semantic_similarity(title1, title2)
+    path_score = semantic_similarity(urlparse(url1).path, urlparse(url2).path)
+    query_score = semantic_similarity(str(parse_qs(urlparse(url1).query)), str(parse_qs(urlparse(url2).query)))
+    # Weighted average of scores: Titles are more important than paths, and paths more than queries
+    similarity = (0.6 * semantic_score) + (0.3 * path_score) + (0.1 * query_score)
     return similarity
 
 def find_path(start_page, finish_page):
