@@ -23,16 +23,20 @@ def find_path():
 
         path, logs, time, discovered = crawler.find_path(start_page, finish_page)
 
-        elapsed_time = logs[-1]  # This seems like a mistake, as 'elapsed_time' is not used later.
+        # Removed unused elapsed_time variable
         response = jsonify({'path': path, 'logs': logs, 'time': time, 'discovered': discovered})
         print(response)
         return response
     except crawler.TimeoutErrorWithLogs as e:
         app.logger.error(f"Error occurred: {e}")
+        return jsonify({'error': 'An error occurred while finding path', 'logs': logs, 'time': time, 'discovered': discovered}), 500
         return jsonify({'error': str(e), 'logs': e.logs, 'time': e.time, 'discovered': e.discovered}), 500
     except Exception as e:
-        # This section might raise a NameError if an exception occurs before 'logs', 'time', or 'discovered' are defined
+        logs = []  # Ensure 'logs' is defined
+        time = 0   # Ensure 'time' is defined
+        discovered = 0  # Ensure 'discovered' is defined
         app.logger.error(f"Error occurred: {e}")
+        return jsonify({'error': 'An error occurred while finding path', 'logs': logs, 'time': time, 'discovered': discovered}), 500
         return jsonify({'error': 'An error occurred while finding path', 'logs': [], 'time': 0, 'discovered': 0}), 500
 
 @app.route('/static/<path:path>')

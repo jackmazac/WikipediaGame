@@ -5,13 +5,15 @@ import re
 
 TIMEOUT = 20  # time limit in seconds for the search
 
-def get_links(page_url):
+def get_links(page_url, verbose=True):
     print(f"Fetching page: {page_url}")
     response = requests.get(page_url)
     print(f"Finished fetching page: {page_url}")
     soup = BeautifulSoup(response.text, 'html.parser')
     from urllib.parse import urljoin
     all_links = [urljoin(page_url, a['href']) for a in soup.find_all('a', href=True) if '#' not in a['href']]
+    if verbose:
+        print(f"All links found: {all_links}")
     # print(f"All links found: {all_links}")
     links = [link for link in all_links if re.match(r'^https://en\.wikipedia\.org/wiki/[^:]*$', link) and '#' not in link]
     print(f"Found {len(links)} links on page: {page_url}")
