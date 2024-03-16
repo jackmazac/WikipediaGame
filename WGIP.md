@@ -1,3 +1,5 @@
+I will not be working in a group.
+
 # Wikipedia Game Improvement Proposal Revision
 
 In light of new findings during the development of the Wikipedia Game crawler, I propose a revision to the original improvement strategy. Initially, I suggested implementing a heuristic search function to analyze link relevance through keyword extraction or employing machine learning models. However, upon further development and testing, it has become clear that a simple bi-directional search algorithm significantly outperforms the heuristic approach in finding the shortest path between two Wikipedia links.
