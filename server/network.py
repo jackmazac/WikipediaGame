@@ -35,9 +35,11 @@ async def fetch(url: str, session: ClientSession, method: str = 'GET', data=None
         raise
 
 class AsyncHTTPClient:
-    def __init__(self, rate_limit=RATE_LIMIT):
+    def __init__(self, rate_limit=RATE_LIMIT, max_parallel_requests=10):
         self.rate_limit = rate_limit
         self.semaphore = asyncio.Semaphore(rate_limit)
+        self.max_parallel_requests = max_parallel_requests
+        self.parallel_semaphore = asyncio.Semaphore(max_parallel_requests)
         self.session = None
 
     async def __aenter__(self):
@@ -48,13 +50,23 @@ class AsyncHTTPClient:
         if self.session:
             await self.session.close()
 
-    async def get(self, url, **kwargs):
-        async with self.semaphore:
-            return await fetch(url, self.session, 'GET', **kwargs)
+    async def get(self, urls, **kwargs):
+        async with self.parallel_semaphore:
+            tasks = []
+            for url in urls:
+                async with self.semaphore:
+                    task = asyncio.create_task(fetch(url, self.session, 'GET', **kwargs))
+                    tasks.append(task)
+            return await asyncio.gather(*tasks)
 
-    async def post(self, url, data=None, headers=None):
-        async with self.semaphore:
-            return await fetch(url, self.session, 'POST', data=data, headers=headers)
+    async def post(self, urls, data=None, headers=None):
+        async with self.parallel_semaphore:
+            tasks = []
+            for url in urls:
+                async with self.semaphore:
+                    task = asyncio.create_task(fetch(url, self.session, 'POST', data=data, headers=headers))
+                    tasks.append(task)
+            return await asyncio.gather(*tasks)
 
 # Utility function to use AsyncHTTPClient
 async def fetch_url(url):
